@@ -1,5 +1,11 @@
 import streamlit as st
 
+st.set_page_config(
+    page_title="Proporzionator",
+    page_icon=":guardsman:",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
 #background 
 def get_image_as_base64(file):
@@ -14,10 +20,11 @@ img = get_image_as_base64("background.jpg")
 page_bg_img = f"""
 <style>
 [data-testid="stAppViewContainer"] {{
-    background-image: url("data:image/jpeg;base64, {img}");
-    background-size: 100%;        /* Rimpicciolita al 50% */
-    background-repeat: no-repeat;/* Non ripetuta */
-    background-position: center; /* Centrata */
+    background-image: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), url("data:image/jpeg;base64, {img}");
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    background-position: center;
 }}
 [data-testid="stHeader"] {{
     background-color: rgba(0, 0, 0, 0);
@@ -31,13 +38,6 @@ page_bg_img = f"""
 st.markdown(page_bg_img, unsafe_allow_html=True)
 
 
-
-st.set_page_config(
-    page_title="Proporzionator",
-    page_icon=":guardsman:",  # Add a page icon (optional)
-    layout="wide",  # Choose between "centered" or "wide" layout
-    initial_sidebar_state="expanded"  # Choose between "expanded" or "collapsed"
-)
 
 carboidrati = {
     "Biscotti Plasmon": 85,
@@ -62,8 +62,25 @@ carboidrati = {
     "Riso integrale": 84
 }
 
-st.title("Carboidrati")
-c1,c2,c3 = st.columns([10, 5, 10])
+st.markdown(
+    """
+    <div style="
+        display:inline-block;
+        background-color:#000000;
+        color:white;
+        padding:6px 12px;
+        border-radius:6px;
+        font-size:32px;
+        font-weight:bold;
+    ">
+        Carboidrati
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+# Colonne sotto il titolo
+c1, c2, c3 = st.columns([10, 5, 10])
 
 with c1:
     selected_carboidrati = st.selectbox(
