@@ -1,43 +1,139 @@
 import streamlit as st
+import base64
+import sqlite3
+from datetime import datetime
+
+# Inizializza il database SQLite
+def init_db():
+    conn = sqlite3.connect('richieste.db')
+    c = conn.cursor()
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS richieste (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nome TEXT,
+            messaggio TEXT,
+            data TEXT
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+init_db()
+
+def salva_richiesta(nome, messaggio):
+    conn = sqlite3.connect('richieste.db')
+    c = conn.cursor()
+    data_ora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    c.execute("INSERT INTO richieste (nome, messaggio, data) VALUES (?, ?, ?)", (nome, messaggio, data_ora))
+    conn.commit()
+    conn.close()
 
 st.set_page_config(
     page_title="Proporzionator",
-    page_icon=":guardsman:",
+    page_icon="⚖️",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-#background 
+def check_password():
+    def password_entered():
+        if st.session_state["password"] == "Biscotto":
+            st.session_state["password_correct"] = True
+            del st.session_state["password"]  # Rimuove la password per sicurezza
+        else:
+            st.session_state["password_correct"] = False
+
+    if "password_correct" not in st.session_state:
+        st.markdown("<div style='text-align: center; margin-top: 100px;'><h2 style='color: white;'>🔒 Area Riservata</h2><p style='color: #ddd;'>Inserisci la password corretta per poter accedere all'app e calcolare i tuoi macronutrienti</p></div>", unsafe_allow_html=True)
+        c1, c2, c3 = st.columns([1, 1, 1])
+        with c2:
+            st.text_input("🔑 Password", type="password", key="password", on_change=password_entered)
+        return False
+    elif not st.session_state["password_correct"]:
+        st.markdown("<div style='text-align: center; margin-top: 100px;'><h2 style='color: white;'>🔒 Area Riservata</h2><p style='color: #ddd;'>Inserisci la password corretta per poter accedere all'app e calcolare i tuoi macronutrienti</p></div>", unsafe_allow_html=True)
+        c1, c2, c3 = st.columns([1, 1, 1])
+        with c2:
+            st.text_input("🔑 Password", type="password", key="password", on_change=password_entered)
+            st.error("❌ Password errata!")
+        return False
+    else:
+        return True
+
+if not check_password():
+    st.stop()
+
+#background logo
 def get_image_as_base64(file):
-    import base64
-    with open(file, "rb") as f:
-        data = f.read()
-        
-    return base64.b64encode(data).decode()
+    try:
+        with open(file, "rb") as f:
+            data = f.read()
+        return base64.b64encode(data).decode()
+    except:
+        return ""
 
 img = get_image_as_base64("background.jpg")
 
-page_bg_img = f"""
+if img:
+    logo_html = f"""
+    <style>
+    .logo-container {{
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        z-index: 999999;
+    }}
+    .logo-img {{
+        width: 160px;
+        height: auto;
+        border-radius: 12px;
+        box-shadow: 0px 4px 6px rgba(0,0,0,0.3);
+        transition: width 0.3s ease;
+    }}
+    @media (max-width: 768px) {{
+        .logo-container {{
+            top: 15px;
+            right: 15px;
+        }}
+        .logo-img {{
+            width: 80px;
+            border-radius: 8px;
+        }}
+    }}
+    </style>
+    <div class="logo-container">
+        <img src="data:image/jpeg;base64,{img}" class="logo-img">
+    </div>
+    """
+    st.markdown(logo_html, unsafe_allow_html=True)
+
+st.markdown("""
 <style>
-[data-testid="stAppViewContainer"] {{
-    background-image: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), url("data:image/jpeg;base64, {img}");
-    background-size: cover;
-    background-repeat: no-repeat;
-    background-attachment: fixed;
-    background-position: center;
-}}
-[data-testid="stHeader"] {{
-    background-color: rgba(0, 0, 0, 0);
-}}
-[data-testid="stToolbar"] {{
-    right: 2rem;
-}}
+[data-testid="stAppViewContainer"] {
+    background-color: #0e1117;
+}
+[data-testid="stHeader"] {
+    background-color: rgba(14, 17, 23, 0);
+}
+
+/* Rimpicciolisce il contenitore app del 30% solo su desktop (PC) e lo allinea a sinistra */
+@media (min-width: 1024px) {
+    .block-container {
+        max-width: 70% !important;
+        margin-left: 0 !important; /* Forza l'abbandono della centratura nativa */
+        padding-left: 3rem !important;
+    }
+}
 </style>
-"""
+""", unsafe_allow_html=True)
 
-st.markdown(page_bg_img, unsafe_allow_html=True)
-
-
+st.markdown(
+    """
+    <div style="text-align: left; margin-top: 10px; margin-bottom: 30px;">
+        <h1 style="color: white; font-size: 40px; text-shadow: 2px 2px 4px rgba(0,0,0,0.6); margin-bottom: 0px;">⚖️ Proporzionator</h1>
+        <p style="color: #eeeeee; font-size: 16px; text-shadow: 1px 1px 3px rgba(0,0,0,0.5);">Calcola le tue proporzioni in modo semplice e veloce!</p>
+    </div>
+    """, unsafe_allow_html=True
+)
 
 carboidrati = {
     "Biscotti Plasmon": 85,
@@ -62,176 +158,148 @@ carboidrati = {
     "Riso integrale": 84
 }
 
-st.markdown(
-    """
-    <div style="
-        display:inline-block;
-        background-color:#000000;
-        color:white;
-        padding:6px 12px;
-        border-radius:6px;
-        font-size:32px;
-        font-weight:bold;
-    ">
-        Carboidrati
-    </div>
-    """,
-    unsafe_allow_html=True
-)
-
-# Colonne sotto il titolo
-c1, c2, c3 = st.columns([10, 5, 10])
-
-with c1:
-    selected_carboidrati = st.selectbox(
-        "Quale carboidrato di riferimento?",
-        carboidrati.keys(),
-        key="carboidrati"
-    )
-    sel_qty = st.number_input(
-        "Quanti grammi?",
-        min_value=5,
-        max_value=3000,
-        step=5,
-        key="carboidrati1"
-    )
-with c3:
-    selected_variante_carboidrati = st.selectbox(
-        "Quale carboidrato vuoi?",
-        carboidrati.keys(),
-        key="carboidrati2"
-    )
-
-qty_res =  (carboidrati[selected_variante_carboidrati] * sel_qty) / carboidrati[selected_carboidrati]
-c1,c2 = st.columns([2,1])
-with c2:
-     st.markdown(f"""
-    <div style="
-        display:inline-block;
-        background-color:#1f77b4;
-        color:white;
-        padding:4px 8px;
-        border-radius:4px;
-        font-size:24px;
-        font-weight:bold;">
-        Devi mangiare {qty_res:.0f} gr.
-    </div>
-""", unsafe_allow_html=True)
-    
 proteine = {
-"Albume": 200,
-"Branzino": 140,
-"Bresaola": 65,
-"Carne rossa magra": 113,
-"Cozze": 180,
-"Fesa di tacchino": 120,
-"Feta greca": 150,
-"Fiocchi di latte": 200,
-"Gamberi sgusciati": 170,
-"Grana Padano 48 mesi": 70,
-"Latte proteico": 250,
-"Merluzzo": 160,
-"Pesce spada": 110,
-"Petto di pollo": 100,
-"Prosciutto cotto": 110,
-"Prosciutto crudo sgrassato": 75,
-"Salmone": 120,
-"Shaker": 15,
-"Skyr": 250,
-"Speck": 75,
-"Tonno fresco": 110,
-"Tonno in scatola al naturale": 110,
-"Total 0": 230,
-"Uova": 190,
-"Yogurt greco": 350
+    "Albume": 200,
+    "Branzino": 140,
+    "Bresaola": 65,
+    "Carne rossa magra": 113,
+    "Cozze": 180,
+    "Fesa di tacchino": 120,
+    "Feta greca": 150,
+    "Fiocchi di latte": 200,
+    "Gamberi sgusciati": 170,
+    "Grana Padano 48 mesi": 70,
+    "Latte proteico": 250,
+    "Merluzzo": 160,
+    "Pesce spada": 110,
+    "Petto di pollo": 100,
+    "Prosciutto cotto": 110,
+    "Prosciutto crudo sgrassato": 75,
+    "Salmone": 120,
+    "Shaker": 15,
+    "Skyr": 250,
+    "Speck": 75,
+    "Tonno fresco": 110,
+    "Tonno in scatola al naturale": 110,
+    "Total 0": 230,
+    "Uova": 190,
+    "Yogurt greco": 350
 }
 
-st.title("Proteine")
-c1,c2,c3 = st.columns([10, 5, 10])
-
-with c1:
-    selected_proteine = st.selectbox(
-        "Quale è la proteina di riferimento?",
-        proteine.keys(),
-        key="proteine"
-    )
-    sel_qty = st.number_input(
-        "Quanti grammi?",
-        min_value=5,
-        max_value=3000,
-        step=5,
-        key="proteine1"
-    )
-with c3:
-    selected_variante_proteine = st.selectbox(
-        "Quale proteina vuoi?",
-        proteine.keys(),
-        key="proteine2"
-    )
-
-qty_res =  (proteine[selected_variante_proteine] * sel_qty) / proteine[selected_proteine]
-c1,c2 = st.columns([2,1])
-with c2:
-     st.markdown(f"""
-    <div style="
-        display:inline-block;
-        background-color:#1f77b4;
-        color:white;
-        padding:4px 8px;
-        border-radius:4px;
-        font-size:24px;
-        font-weight:bold;">
-        Devi mangiare {qty_res:.0f} gr.
-    </div>
-""", unsafe_allow_html=True)
-    
 grassi = {
-"Avocado": 60,
-"Burro di arachidi": 18,
-"Cioccolato fondente al 80%": 19,
-"Mandorle": 18,
-"Noci": 15,
-"Olio extravergine di oliva": 9.1,
-"Pesto di pistacchi": 14,
-"Pistacchio": 16
+    "Avocado": 60,
+    "Burro di arachidi": 18,
+    "Cioccolato fondente al 80%": 19,
+    "Mandorle": 18,
+    "Noci": 15,
+    "Olio extravergine di oliva": 9.1,
+    "Pesto di pistacchi": 14,
+    "Pistacchio": 16
 }
 
-st.title("Grassi")
-c1,c2,c3 = st.columns([10, 5, 10])
+def create_section(title, singular_title, icon, color, data_dict, key_suffix):
+    st.markdown(f'''
+        <div style="
+            display: flex;
+            align-items: center;
+            background: linear-gradient(135deg, {color}dd, {color}ff);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-size: 24px;
+            font-weight: bold;
+            margin-top: 10px;
+            margin-bottom: 25px;
+            box-shadow: 0px 4px 10px rgba(0,0,0,0.5);
+        ">
+            <span style="font-size: 30px; margin-right: 15px; text-shadow: 2px 2px 4px rgba(0,0,0,0.4);">{icon}</span>
+            {title}
+        </div>
+    ''', unsafe_allow_html=True)
+    
+    c_ref, c_qty, c_target, spacer = st.columns([3, 2, 3, 4])
+    
+    with c_ref:
+        ref_item = st.selectbox(
+            f"🔍 Quale {singular_title} di riferimento?",
+            list(data_dict.keys()),
+            key=f"ref_{key_suffix}"
+        )
+    with c_qty:
+        qty = st.number_input(
+            "⚖️ Quanti grammi?",
+            min_value=5,
+            max_value=3000,
+            step=5,
+            value=100,
+            key=f"qty_{key_suffix}"
+        )
+        
+    with c_target:
+        target_item = st.selectbox(
+            f"🍽️ Quale {singular_title} vuoi?",
+            list(data_dict.keys()),
+            key=f"target_{key_suffix}"
+        )
+        
+    qty_res = (data_dict[target_item] * qty) / data_dict[ref_item]
+    
+    st.markdown(f'''
+        <div style="
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(30, 30, 30, 0.8);
+            color: #ffffff;
+            padding: 14px 30px;
+            border-radius: 10px;
+            border-left: 8px solid {color};
+            font-size: 18px;
+            font-weight: bold;
+            margin: 28px auto 0 auto;
+            width: fit-content;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+        ">
+            🎯 Devi mangiare <span style="color: {color}; margin: 0 8px; font-size: 24px; text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">{qty_res:.0f} gr.</span>
+        </div>
+    ''', unsafe_allow_html=True)
+    
+    st.markdown("<br><br>", unsafe_allow_html=True)
 
-with c1:
-    selected_grassi = st.selectbox(
-        "Quale è il grasso di riferimento?",
-        grassi.keys(),
-        key="grassi"
-    )
-    sel_qty = st.number_input(
-        "Quanti grammi?",
-        min_value=5,
-        max_value=3000,
-        step=5,
-        key="grassi1"
-    )
-with c3:
-    selected_variante_grassi = st.selectbox(
-        "Quale grasso vuoi?",
-        grassi.keys(),
-        key="grassi2"
-    )
+create_section("Carboidrati", "carboidrato", "🍞", "#FF9800", carboidrati, "carbs")
+create_section("Proteine", "proteina", "🥩", "#E53935", proteine, "prot")
+create_section("Grassi", "grasso", "🥑", "#43A047", grassi, "fat")
 
-qty_res =  (grassi[selected_variante_grassi] * sel_qty) / grassi[selected_grassi]
-c1,c2 = st.columns([2,1])
-with c2:
-   st.markdown(f"""
+st.markdown("<br><hr style='border: 1px solid #444;'><br>", unsafe_allow_html=True)
+
+st.markdown(f'''
     <div style="
-        display:inline-block;
-        background-color:#1f77b4;
-        color:white;
-        padding:4px 8px;
-        border-radius:4px;
-        font-size:24px;
-        font-weight:bold;">
-        Devi mangiare {qty_res:.0f} gr.
+        display: flex;
+        align-items: center;
+        background: linear-gradient(135deg, #1f77b4dd, #1f77b4ff);
+        color: white;
+        padding: 8px 16px;
+        border-radius: 10px;
+        font-size: 24px;
+        font-weight: bold;
+        margin-top: 10px;
+        margin-bottom: 25px;
+        box-shadow: 0px 4px 10px rgba(0,0,0,0.5);
+    ">
+        <span style="font-size: 30px; margin-right: 15px; text-shadow: 2px 2px 4px rgba(0,0,0,0.4);">📩</span>
+        Hai delle richieste o suggerimenti?
     </div>
-""", unsafe_allow_html=True)
+''', unsafe_allow_html=True)
 
+with st.form("richiesta_alimenti_form", clear_on_submit=True):
+    st.markdown("<p style='color: #eeeeee; font-size: 16px;'>Non trovi un alimento nella lista? Scrivici la tua richiesta qui sotto e cercheremo di aggiungerlo presto!</p>", unsafe_allow_html=True)
+    nome = st.text_input("Il tuo nome (opzionale)")
+    messaggio = st.text_area("Scrivi qui la tua richiesta o i suggerimenti...", height=100)
+    submitted = st.form_submit_button("Invia Richiesta")
+    if submitted:
+        if messaggio.strip():
+            salva_richiesta(nome, messaggio)
+            st.success("✅ Grazie! La tua richiesta è stata salvata correttamente nel database.")
+        else:
+            st.warning("⚠️ Scrivi qualcosa prima di inviare!")
