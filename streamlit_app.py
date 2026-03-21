@@ -1,32 +1,25 @@
 import streamlit as st
 import base64
-import sqlite3
 from datetime import datetime
-
-# Inizializza il database SQLite
-def init_db():
-    conn = sqlite3.connect('richieste.db')
-    c = conn.cursor()
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS richieste (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            nome TEXT,
-            messaggio TEXT,
-            data TEXT
-        )
-    ''')
-    conn.commit()
-    conn.close()
-
-init_db()
+import pandas as pd
+from streamlit_gsheets import GSheetsConnection
 
 def salva_richiesta(nome, messaggio):
-    conn = sqlite3.connect('richieste.db')
-    c = conn.cursor()
+    # Connessione a Google Sheets
+    conn = st.connection("gsheets", type=GSheetsConnection)
     data_ora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    c.execute("INSERT INTO richieste (nome, messaggio, data) VALUES (?, ?, ?)", (nome, messaggio, data_ora))
-    conn.commit()
-    conn.close()
+    
+    try:
+        # worksheet="Foglio1" è il nome di default dei fogli Google
+        existing_data = conn.read(worksheet="Foglio1", usecols=[0, 1, 2])
+        existing_data = existing_data.dropna(how="all")
+    except:
+        existing_data = pd.DataFrame(columns=["Nome", "Messaggio", "Data"])
+
+    nuova_riga = pd.DataFrame([{"Nome": nome, "Messaggio": messaggio, "Data": data_ora}])
+    updated_df = pd.concat([existing_data, nuova_riga], ignore_index=True)
+    
+    conn.update(worksheet="Foglio1", data=updated_df)
 
 st.set_page_config(
     page_title="Proporzionator",
